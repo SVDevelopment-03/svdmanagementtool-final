@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.output/
+dist/
+build/
+.vite/
+.tanstack/
+.wrangler/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project-specific generated files
+backend/uploads/
+backend/**/*.log
+public/*.map
+
+# Local runtime artifacts
+*.local
+coverage/
