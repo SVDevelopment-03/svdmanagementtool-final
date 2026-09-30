@@ -37,3 +37,5 @@ public/*.map
 # Local runtime artifacts
 *.local
 coverage/
+# Generated Electron release artifacts
+electron-release/
