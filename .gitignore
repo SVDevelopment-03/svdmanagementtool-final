@@ -39,3 +39,5 @@ public/*.map
 coverage/
 # Generated Electron release artifacts
 electron-release/
+# Vercel local build output
+.vercel/
