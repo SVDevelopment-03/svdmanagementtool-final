@@ -1,6 +1,6 @@
 /* SV Management Portal — API runtime
  * Talks to the PHP/MySQL backend that you deploy on cPanel (see /backend).
- * Configure the API base URL in the login screen (stored in localStorage as sv_api_base).
+ * The API base URL is fixed to API_BASE below.
  *
  * Offline / local mode: when no API base URL is configured (or the server is
  * unreachable) every module keeps working against localStorage, so all CRUD
@@ -9,13 +9,12 @@
  */
 (function () {
   var TOKEN_KEY = "sv_token";
-  var BASE_KEY = "sv_api_base";
+  var API_BASE = "https://taskmanager.svdigital.ae/api";
   var LOCAL_KEY = "sv_local_user";
   var FILE_PREFIX = "sv_local_file:";
 
   function base() {
-    var b = localStorage.getItem(BASE_KEY) || "";
-    return b.replace(/\/+$/, "");
+    return API_BASE.replace(/\/+$/, "");
   }
   function token() {
     return localStorage.getItem(TOKEN_KEY) || "";
@@ -36,7 +35,11 @@
     if (!base()) throw new Error("No API base URL configured");
     var headers = options.headers || {};
     if (!(options.body instanceof FormData)) headers["Content-Type"] = "application/json";
-    if (token()) headers["Authorization"] = "Bearer " + token();
+    if (token()) {
+      headers["Authorization"] = "Bearer " + token();
+      // LiteSpeed/cPanel can strip Authorization; this custom header always reaches PHP.
+      headers["X-Auth-Token"] = token();
+    }
     var res = await fetch(base() + path, {
       method: options.method || "GET",
       headers: headers,
@@ -104,11 +107,8 @@
 
 
   var SVApi = {
-    setBase: function (url) {
-      localStorage.setItem(BASE_KEY, url);
-    },
     getBase: function () {
-      return localStorage.getItem(BASE_KEY) || "";
+      return base();
     },
     isAuthed: function () {
       return !!token() || !!localUser();
@@ -202,7 +202,7 @@
         try {
           fetch(base() + "/auth.php?action=logout", {
             method: "POST",
-            headers: { Authorization: "Bearer " + token() },
+            headers: { Authorization: "Bearer " + token(), "X-Auth-Token": token() },
             keepalive: true,
           });
         } catch (e) {}

@@ -259,13 +259,19 @@ async function loadData(){
   for(const k of keys){
     try{
       const res = await window.storage.get('svops:'+k, true);
-      const parsed = res ? JSON.parse(res.value) : null;
-      // Guard against malformed/legacy rows coming back from MySQL.
-      STATE[k] = Array.isArray(parsed) ? parsed : defaults[k]();
-      if(!res || !Array.isArray(parsed)) await saveData(k);
+      if(!res){
+        // Nothing stored yet for this module: seed it once.
+        STATE[k] = defaults[k]();
+        await saveData(k);
+        continue;
+      }
+      const parsed = JSON.parse(res.value);
+      if(!Array.isArray(parsed)) throw new Error('not a list');
+      STATE[k] = parsed;
     }catch(e){
-      STATE[k] = defaults[k]();
-      await saveData(k);
+      // Malformed/legacy row: show the module empty but never write over the stored copy.
+      console.warn('Could not read svops:'+k+' — leaving the saved data untouched.', e);
+      STATE[k] = [];
     }
   }
   STATE.projects = STATE.projects.map(normalizeProject);
@@ -1255,7 +1261,7 @@ function renderRevenue(){
     <div class="section-head">
       <h2>Collections by Period</h2>
       <div style="display:flex;gap:6px;">
-        ${['monthly','quarterly','annual'].map(p=>`<button class="btn-ghost" style="${STATE.revenuePeriod===p?'background:var(--brass);color:#1A1408;border-color:var(--brass);':''}" onclick="STATE.revenuePeriod='${p}'; renderRevenue();">${p[0].toUpperCase()+p.slice(1)}</button>`).join('')}
+        ${['monthly','quarterly','annual'].map(p=>`<button class="btn-ghost" style="${STATE.revenuePeriod===p?'background:var(--brass);color:#FFFFFF;border-color:var(--brass);':''}" onclick="STATE.revenuePeriod='${p}'; renderRevenue();">${p[0].toUpperCase()+p.slice(1)}</button>`).join('')}
         ${period==='monthly' ? `<button class="btn-ghost" onclick="openTargetsForm()">🎯 Set Targets</button>` : ''}
       </div>
     </div>
@@ -2018,11 +2024,11 @@ function toggleTheme(){
 async function loadTheme(){
   try{
     const res = await window.storage.get('svops:theme', false);
-    if(res && res.value==='light'){
-      document.documentElement.setAttribute('data-theme','light');
-      document.getElementById('theme-toggle-btn').textContent = '☀️ Light';
-    }
+    // Light is the default; only an explicit saved 'dark' choice switches it off.
+    if(res && res.value==='dark') return;
   }catch(e){}
+  document.documentElement.setAttribute('data-theme','light');
+  document.getElementById('theme-toggle-btn').textContent = '☀️ Light';
 }
 
 /* ---------------- INIT ---------------- */

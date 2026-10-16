@@ -39,7 +39,6 @@ type SVUser = { id: number; name: string; email: string; role: "admin" | "member
 declare global {
   interface Window {
     SVApi: {
-      setBase: (url: string) => void;
       getBase: () => string;
       isAuthed: () => boolean;
       isLocal: () => boolean;
@@ -142,51 +141,16 @@ function LoginScreen({
   ready: boolean;
   onSignedIn: (u: SVUser) => void;
 }) {
-  const [apiBase, setApiBase] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
-  const [testing, setTesting] = useState(false);
-
-  useEffect(() => {
-    if (ready) setApiBase(window.SVApi.getBase());
-  }, [ready]);
-
-  async function testConnection() {
-    setError("");
-    setStatus("");
-    if (!apiBase.trim()) {
-      setError("Enter your API base URL (your cPanel backend folder).");
-      return;
-    }
-    setTesting(true);
-    try {
-      const h = await window.SVApi.health(apiBase.trim());
-      window.SVApi.setBase(apiBase.trim());
-      setStatus(
-        `Connected · MySQL ${h.database?.server ?? ""} · ${h.counts?.users ?? 0} users · ` +
-          `${h.counts?.records ?? 0} saved records · uploads ${h.uploads?.writable ? "ready" : "not writable"}`,
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Connection failed");
-    } finally {
-      setTesting(false);
-    }
-  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    setStatus("");
-    if (!apiBase.trim()) {
-      setError("Enter your API base URL (your cPanel backend folder).");
-      return;
-    }
     setBusy(true);
     try {
-      window.SVApi.setBase(apiBase.trim());
       const u = await window.SVApi.login(email.trim(), password);
       onSignedIn(u);
     } catch (err) {
@@ -202,43 +166,11 @@ function LoginScreen({
       <div className="login-grid-lines" />
       <form className="login-card" onSubmit={submit}>
         <div className="login-mark">
-          <div className="dot" />
-          <span>SV Digital</span>
+          <div className="login-logo" role="img" aria-label="SV Digital" />
         </div>
         <div className="login-title">Management Portal</div>
         <div className="login-sub">
           Sign in with your team account to access projects, clients and commercials.
-        </div>
-
-        <div className="login-field">
-          <label htmlFor="api-base">API base URL</label>
-          <input
-            id="api-base"
-            value={apiBase}
-            onChange={(e) => setApiBase(e.target.value)}
-            placeholder="https://yourdomain.com/portal-api"
-            autoComplete="off"
-          />
-          <button
-            type="button"
-            onClick={testConnection}
-            disabled={!ready || testing}
-            style={{
-              marginTop: 8,
-              padding: "7px 12px",
-              fontSize: 12,
-              borderRadius: 8,
-              cursor: "pointer",
-              background: "transparent",
-              color: "inherit",
-              border: "1px solid rgba(255,255,255,.18)",
-            }}
-          >
-            {testing ? "Testing…" : "Test connection"}
-          </button>
-          {status && (
-            <div style={{ marginTop: 8, fontSize: 12, color: "#5fd0a3" }}>{status}</div>
-          )}
         </div>
 
         <div className="login-field">
@@ -266,22 +198,6 @@ function LoginScreen({
           {busy ? "Signing in…" : "Sign in"}
         </button>
         <div className="login-error">{error}</div>
-        <button
-          type="button"
-          className="login-btn"
-          style={{ background: "transparent", border: "1px solid rgba(255,255,255,.18)" }}
-          disabled={!ready}
-          onClick={() => onSignedIn(window.SVApi.loginLocal())}
-        >
-          Continue offline (local data)
-        </button>
-        <div className="login-hint">
-          Offline mode runs every module against this device&rsquo;s local storage — all add, edit
-          and delete actions work and persist locally. For shared team data, deploy the{" "}
-          <code>/backend</code> folder on cPanel (PHP + MySQL) and point the API base URL at it.
-          Default seeded admin: <code>admin@svdigital.ae</code> / <code>ChangeMe123!</code>
-        </div>
-
       </form>
     </div>
   );
@@ -314,7 +230,7 @@ function PortalShell({ user, onLogout }: { user: SVUser; onLogout: () => void })
                 onClick={() => window.toggleTheme?.()}
                 style={{ fontSize: 12 }}
               >
-                🌙 Dark
+                ☀️ Light
               </button>
               {user.role === "admin" && !window.SVApi?.isLocal?.() && (
                 <button
